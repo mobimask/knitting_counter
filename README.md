@@ -41,6 +41,6 @@ swift test
 ## Web version (no Mac needed)
 
 `web/index.html` is the same counter as a single web page, published as a private Claude
-artifact. Open it in Safari on your iPhone, tap **Share → Add to Home Screen**, and it opens
-full-screen like an app. Projects are saved to your Claude account, so they show up on any
-device where you open the page.
+artifact. Open it in Safari on your iPhone (signed in to claude.ai) and tap
+**Share → Add to Home Screen** for a one-tap shortcut. Projects are saved to your Claude
+account, so they show up on any device where you open the page.
