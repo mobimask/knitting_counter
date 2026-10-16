@@ -70,6 +70,19 @@ final class KnittingProjectTests: XCTestCase {
         XCTAssertEqual(progress?.overallFraction, 1)
     }
 
+    func testRowsDoneInRepeatResetsEachRepeat() {
+        var project = KnittingProject(name: "Cable", rows: 7, rowsPerRepeat: 8, totalRepeats: 3)
+        XCTAssertEqual(project.rowsDoneInRepeat, 7)
+        project.incrementRow()
+        XCTAssertEqual(project.rowsDoneInRepeat, 0, "Back to 0 once the repeat's rows are done")
+        XCTAssertEqual(project.repeatProgress?.currentRepeat, 2)
+        XCTAssertEqual(project.rows, 8, "The running total keeps counting")
+
+        project.rows = 24
+        XCTAssertNil(project.rowsDoneInRepeat, "All repeats done")
+        XCTAssertNil(KnittingProject(name: "Plain", rows: 5).rowsDoneInRepeat)
+    }
+
     func testArchiveRoundTrip() throws {
         let date = Date(timeIntervalSince1970: 1_700_000_000)
         let projects = [

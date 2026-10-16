@@ -284,7 +284,7 @@
       <label class="check"><input type="checkbox" id="f-reset" checked> Reset stitches to 0 on each new row</label>
       <label class="check"><input type="checkbox" id="f-sides"> Show right side / wrong side (flat knitting)</label>
       <div class="pair" id="count-fields">
-        <label class="field"><span>Rows done</span><input class="text" id="f-rows" type="number" inputmode="numeric" min="0" max="99999"></label>
+        <label class="field"><span>Total rows done</span><input class="text" id="f-rows" type="number" inputmode="numeric" min="0" max="99999"></label>
         <label class="field"><span>Stitches</span><input class="text" id="f-stitches" type="number" inputmode="numeric" min="0" max="99999"></label>
       </div>
     </fieldset>
@@ -625,6 +625,14 @@
     const hint = p.showSides
       ? `Next: row ${next} <span class="side${rs ? "" : " ws"}">${rs ? "RS" : "WS"}</span> ${rs ? "right side" : "wrong side"}`
       : "Tap to add a row";
+    // With repeats on, the big number counts rows in the current repeat and starts
+    // again at 0 when a repeat is finished. The running total is shown underneath.
+    const inRepeat = !!rp && !rp.complete;
+    const shown = inRepeat ? rp.row - 1 : p.rows;
+    const justFinished = inRepeat && shown === 0 && rp.current > 1;
+    const totalLine = inRepeat
+      ? `<span class="hint">${justFinished ? `Repeat ${rp.current - 1} finished. ` : ""}Total: ${plural(p.rows, "row")}</span>`
+      : "";
 
     let repeat = "";
     if (rp) {
@@ -647,10 +655,11 @@
         <button class="btn ghost" data-act="edit">Edit</button>
       </header>
       ${repeat}
-      <button class="rows-tap" data-act="row+" aria-label="Rows done: ${p.rows}. Tap to add a row.">
-        <span class="label">Rows done</span>
-        <span class="big" id="rows-num">${p.rows}</span>
+      <button class="rows-tap" data-act="row+" aria-label="${inRepeat ? `Rows done this repeat: ${shown}. Total ${p.rows}.` : `Rows done: ${p.rows}.`} Tap to add a row.">
+        <span class="label">${inRepeat ? "Rows done this repeat" : "Rows done"}</span>
+        <span class="big" id="rows-num">${shown}</span>
         <span class="hint">${hint}</span>
+        ${totalLine}
       </button>
       <div class="row-tools">
         <button class="btn" data-act="row-" ${p.rows ? "" : "disabled"}>− Undo row</button>

@@ -52,29 +52,39 @@ struct CounterView: View {
     }
 
     private func rowCounter(_ project: KnittingProject) -> some View {
-        VStack(spacing: 12) {
+        // With repeats on, the big number counts rows in the current repeat and
+        // starts again at 0 when a repeat is finished.
+        let inRepeat = project.rowsDoneInRepeat
+        let shown = inRepeat ?? project.rows
+
+        return VStack(spacing: 12) {
             Button {
                 store.update(projectID) { $0.incrementRow() }
             } label: {
                 VStack(spacing: 4) {
-                    Text("ROWS")
+                    Text(inRepeat == nil ? "ROWS DONE" : "ROWS DONE THIS REPEAT")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
-                    Text("\(project.rows)")
+                    Text("\(shown)")
                         .font(.system(size: 96, weight: .bold, design: .rounded))
                         .monospacedDigit()
-                        .contentTransition(.numericText(value: Double(project.rows)))
+                        .contentTransition(.numericText(value: Double(shown)))
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
                     Text("Tap to add a row")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                    if inRepeat != nil {
+                        Text("Total: \(project.rows) rows")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(.tint.opacity(0.12), in: .rect(cornerRadius: 24))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Rows: \(project.rows)")
+            .accessibilityLabel(inRepeat.map { "Rows this repeat: \($0). Total \(project.rows)" } ?? "Rows: \(project.rows)")
             .accessibilityHint("Adds one row")
 
             Button {

@@ -75,6 +75,13 @@ struct KnittingProject: Identifiable, Codable, Equatable, Hashable {
 
     // MARK: - Pattern repeats
 
+    /// Rows finished in the current repeat, starting again at 0 when a repeat is done.
+    /// `nil` when repeats aren't tracked or every repeat is finished.
+    var rowsDoneInRepeat: Int? {
+        guard let progress = repeatProgress, !progress.isComplete else { return nil }
+        return progress.rowInRepeat - 1
+    }
+
     /// Where the knitter is within the pattern repeat, or `nil` when repeats aren't tracked.
     var repeatProgress: RepeatProgress? {
         guard let rowsPerRepeat, rowsPerRepeat > 0 else { return nil }
