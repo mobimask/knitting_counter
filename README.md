@@ -37,3 +37,10 @@ Package.swift                Builds Model/ as a package so the tests run with `s
 ```sh
 swift test
 ```
+
+## Web version (no Mac needed)
+
+`web/index.html` is the same counter as a single web page, published as a private Claude
+artifact. Open it in Safari on your iPhone, tap **Share → Add to Home Screen**, and it opens
+full-screen like an app. Projects are saved to your Claude account, so they show up on any
+device where you open the page.
