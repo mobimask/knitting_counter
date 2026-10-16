@@ -40,7 +40,28 @@ swift test
 
 ## Web version (no Mac needed)
 
-`web/index.html` is the same counter as a single web page, published as a private Claude
-artifact. Open it in Safari on your iPhone (signed in to claude.ai) and tap
-**Share → Add to Home Screen** for a one-tap shortcut. Projects are saved to your Claude
-account, so they show up on any device where you open the page.
+The same counter also runs as a web page, in two places:
+
+- **Claude artifact** (private, for you): built straight from `web/index.html`. Projects are
+  saved to your Claude account.
+- **Public website** (for anyone): `docs/` is a standalone copy for GitHub Pages. Projects are
+  saved in each person's own browser, with a **Save backup / Restore backup** option. It works
+  offline, uses no outside services, and adds a proper icon when added to the Home Screen.
+
+### Publishing the public website
+
+1. On GitHub, open the repository → **Settings** → **General** → scroll to **Danger Zone** →
+   **Change visibility** → **Public**.
+2. Go to **Settings** → **Pages**. Under **Build and deployment**, set **Source** to
+   **Deploy from a branch**, **Branch** to `main` and the folder to `/docs`, then **Save**.
+3. After a minute or two the site is live at `https://mobaghodrat.github.io/knitting_counter/`.
+
+On an iPhone: open that address in Safari, tap **Share → Add to Home Screen**.
+
+### Changing the web app
+
+Edit `web/index.html`, then rebuild the public copy:
+
+```sh
+python3 tools/build_site.py
+```

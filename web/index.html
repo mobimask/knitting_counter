@@ -1,7 +1,5 @@
 <title>Knitting Counter</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Knitting">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
@@ -41,6 +39,7 @@
   }
 
   html, body { height: 100%; }
+  html { box-sizing: border-box; }
   body {
     background: var(--bg);
     color: var(--fg);
@@ -82,6 +81,7 @@
     padding: 10px 18px;
     font-weight: 700;
     min-height: 44px;
+    white-space: nowrap;
   }
   .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
   .btn.ghost { background: transparent; border-color: transparent; padding-inline: 8px; color: var(--accent); }
@@ -133,6 +133,12 @@
 
   .sync { margin: auto 0 0; padding-top: 8px; font-size: .85rem; color: var(--muted); }
   .sync.error { color: var(--danger); }
+
+  .backup { display: flex; flex-direction: column; gap: 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+  .backup h2 { margin: 0; }
+  .backup p { margin: 0; color: var(--muted); font-size: .9rem; max-width: 46ch; }
+  .backup .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .backup .msg { color: var(--fg); font-weight: 700; }
 
   /* ---------- Progress ---------- */
   .track { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
@@ -300,6 +306,7 @@
     </div>
   </form>
 </dialog>
+<input type="file" id="import-file" accept=".json,application/json" hidden>
 
 <script>
 (() => {
@@ -391,7 +398,8 @@
     const el = $("sync-status");
     if (!el) return;
     const text = {
-      connecting: "Connecting to your Claude account…",
+      connecting: window.claude ? "Connecting to your Claude account…" : "",
+      device: "Saved on this phone. Add the app to your Home Screen, and save a backup now and then.",
       cloud: "Saved to your Claude account. Open this page on any device to carry on.",
       local: "Saved on this device only. Sign in to claude.ai to keep projects across devices.",
     }[mode] || message;
@@ -614,6 +622,15 @@
             <button class="btn" data-act="example">Try an example</button>
           </div>
         </section>`}
+      <section class="backup" aria-labelledby="backup-h">
+        <h2 class="label" id="backup-h">Backup</h2>
+        <p>Save all your projects to a file. Restore it after clearing Safari, or to move your projects to another phone.</p>
+        <div class="actions">
+          <button class="btn" data-act="export" ${ps.length ? "" : "disabled"}>Save backup</button>
+          <button class="btn" data-act="import">Restore backup</button>
+        </div>
+        <p class="msg" id="backup-msg" role="status">${esc(state.backupMsg || "")}</p>
+      </section>
       <p class="sync" id="sync-status"></p>`;
     setSync(sync.mode, sync.message);
   }
@@ -706,7 +723,7 @@
         addProject({ name: "Cabled scarf (example)", rows: 13, stitches: 4, rowsPerRepeat: 8, totalRepeats: 12,
           showSides: true, notes: "Example project. Edit or delete it any time.\n4.5 mm needles, 8-row cable repeat." });
         break;
-      case "open": state.openId = btn.dataset.id; saveLocal(); render(); break;
+      case "open": state.openId = btn.dataset.id; state.backupMsg = ""; saveLocal(); render(); break;
       case "back": state.openId = null; saveLocal(); render(); break;
       case "edit": openEditor(find(id)); break;
       case "row+":
@@ -716,6 +733,8 @@
       case "row-": change(id, (p) => { p.rows = Math.max(0, p.rows - 1); }); break;
       case "st+": change(id, (p) => { p.stitches = Math.min(99999, p.stitches + 1); }); bump("st-num"); break;
       case "st-": change(id, (p) => { p.stitches = Math.max(0, p.stitches - 1); }); break;
+      case "export": exportBackup(); break;
+      case "import": $("import-file").click(); break;
     }
   });
 
@@ -724,6 +743,92 @@
     else flushAll();
   });
   window.addEventListener("pagehide", flushAll);
+
+  // ---------- Backup ----------
+
+  function say(msg) {
+    state.backupMsg = msg;
+    const el = $("backup-msg");
+    if (el) el.textContent = msg;
+  }
+
+  const isLifecycle = (code) => !code || code === "unavailable" || code === "not_granted" || String(code).startsWith("capability_");
+
+  async function exportBackup() {
+    const data = JSON.stringify({
+      app: "knitting-counter", version: 1, exportedAt: new Date().toISOString(), projects: state.projects,
+    }, null, 2);
+    const filename = `knitting-backup-${new Date().toISOString().slice(0, 10)}.json`;
+
+    // Inside Claude the page can't download by itself; the viewer offers the file.
+    if (window.claude && typeof window.claude.use === "function") {
+      try {
+        const downloads = await window.claude.use("downloads");
+        if (downloads) {
+          await downloads.save({ filename, data });
+          return say("Backup saved.");
+        }
+      } catch (e) {
+        if (e && e.code === "declined") return say("Backup not saved.");
+        if (!isLifecycle(e && e.code)) return say("Couldn't save the backup. Try again in a moment.");
+      }
+    }
+
+    const file = new File([data], filename, { type: "application/json" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: "Knitting Counter backup" });
+        return say("Backup shared. Pick Save to Files to keep it on your phone.");
+      } catch (e) {
+        if (e && e.name === "AbortError") return say("Backup not saved.");
+      }
+    }
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    say("Backup downloaded.");
+  }
+
+  // Restoring merges: new projects are added, and a project already here is
+  // replaced only when the backup's copy was changed more recently.
+  $("import-file").addEventListener("change", async (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!f) return;
+    try {
+      const raw = JSON.parse(await f.text());
+      const list = Array.isArray(raw) ? raw : raw && raw.projects;
+      if (!Array.isArray(list)) throw new Error("not a backup");
+      let added = 0, updated = 0;
+      for (const item of list.slice(0, 500)) {
+        if (!item || typeof item.id !== "string" || !ID_OK.test(item.id)) continue;
+        const p = normalize(item.id, item);
+        const cur = find(p.id);
+        if (!cur) {
+          state.projects.push(p);
+          sync.deleted.delete(p.id);
+          queueWrite(p.id);
+          added++;
+        } else if (p.updatedAt > cur.updatedAt) {
+          Object.assign(cur, p);
+          queueWrite(p.id);
+          updated++;
+        }
+      }
+      saveLocal();
+      state.backupMsg = added || updated
+        ? `Restored ${added} new and ${updated} updated ${added + updated === 1 ? "project" : "projects"}.`
+        : "Nothing new in that backup. Your projects are already up to date.";
+      render();
+    } catch {
+      say("That file isn't a Knitting Counter backup.");
+    }
+  });
 
   // ---------- Editor ----------
 
@@ -828,7 +933,8 @@
       if (wait) await new Promise((r) => setTimeout(r, wait));
       if ((await connect()) !== false) return;
     }
-    setSync("local");
+    // No Claude page around this one (for example the GitHub Pages copy).
+    setSync("device");
   })();
 })();
 </script>
