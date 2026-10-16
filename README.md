@@ -54,7 +54,7 @@ The same counter also runs as a web page, in two places:
    **Change visibility** → **Public**.
 2. Go to **Settings** → **Pages**. Under **Build and deployment**, set **Source** to
    **Deploy from a branch**, **Branch** to `main` and the folder to `/docs`, then **Save**.
-3. After a minute or two the site is live at `https://mobaghodrat.github.io/knitting_counter/`.
+3. After a minute or two the site is live at `https://mobimask.github.io/knitting_counter/`.
 
 On an iPhone: open that address in Safari, tap **Share → Add to Home Screen**.
 
